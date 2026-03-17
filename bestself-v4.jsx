@@ -223,7 +223,13 @@ function loadData() {
 }
 function seed() {
   return {
-    user: { name: "", role: "", joinDate: new Date().toISOString().slice(0,10), subscribed: false, trialStart: new Date().toISOString().slice(0,10) },
+    user: {
+      name: "", role: "", email: "", phone: "", gender: "", dob: "", country: "",
+      authMethod: "", // "google"|"apple"|"email"
+      joinDate: new Date().toISOString().slice(0,10),
+      subscribed: false,
+      trialStart: new Date().toISOString().slice(0,10),
+    },
     annualGoalSets: [],   // [{ year, goals: { spiritual:[...], ... } }]
     cycleGoalSets:  [],   // [{ label, startDate, goals: { ... } }]
     weeks: [],
@@ -488,6 +494,156 @@ function Divider({ style={} }) {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   STREAK SHARE MODAL
+═══════════════════════════════════════════════════════════ */
+function StreakShareModal({ streak, userName, milestone, onClose }) {
+  const canvasRef = useRef(null);
+  const [copied, setCopied] = useState(false);
+  const milColor = milestone?.color || C.gold;
+  const milLabel = milestone?.label || `${streak}-Week Streak`;
+
+  // Draw the share card onto canvas
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const W = 1080, H = 1080;
+    canvas.width = W; canvas.height = H;
+
+    // Background
+    ctx.fillStyle = "#080A0F";
+    ctx.fillRect(0, 0, W, H);
+
+    // Radial glow top-right
+    const g1 = ctx.createRadialGradient(W*0.8, H*0.15, 0, W*0.8, H*0.15, 400);
+    g1.addColorStop(0, `${milColor}22`); g1.addColorStop(1, "transparent");
+    ctx.fillStyle = g1; ctx.fillRect(0, 0, W, H);
+
+    // Radial glow bottom-left
+    const g2 = ctx.createRadialGradient(W*0.15, H*0.85, 0, W*0.15, H*0.85, 320);
+    g2.addColorStop(0, "#F4C54218"); g2.addColorStop(1, "transparent");
+    ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
+
+    // Border
+    ctx.strokeStyle = `${milColor}40`;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(30, 30, W-60, H-60);
+
+    // BestSelf wordmark
+    ctx.fillStyle = "#F0ECE3";
+    ctx.font = "bold 52px serif";
+    ctx.fillText("Best", 80, 120);
+    ctx.fillStyle = "#FF6B35";
+    ctx.fillText("Self", 80 + ctx.measureText("Best").width, 120);
+
+    // Streak number
+    ctx.fillStyle = milColor;
+    ctx.font = `bold 280px serif`;
+    ctx.textAlign = "center";
+    ctx.fillText(streak, W/2, H/2 - 40);
+
+    // WEEK STREAK label
+    ctx.fillStyle = "#7A8099";
+    ctx.font = "600 52px 'Arial', sans-serif";
+    ctx.letterSpacing = "12px";
+    ctx.fillText("WEEK STREAK", W/2, H/2 + 70);
+
+    // Milestone badge
+    if (milestone) {
+      ctx.fillStyle = `${milColor}22`;
+      ctx.beginPath();
+      ctx.roundRect(W/2 - 220, H/2 + 120, 440, 80, 40);
+      ctx.fill();
+      ctx.strokeStyle = `${milColor}55`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = milColor;
+      ctx.font = "700 34px 'Arial', sans-serif";
+      ctx.fillText(milLabel.toUpperCase(), W/2, H/2 + 172);
+    }
+
+    // Name
+    ctx.fillStyle = "#D8D4CC";
+    ctx.font = "400 44px serif";
+    ctx.fillText(userName || "BestSelf User", W/2, H - 200);
+
+    // Tagline
+    ctx.fillStyle = "#3A4155";
+    ctx.font = "400 34px 'Arial', sans-serif";
+    ctx.fillText("Building my BestSelf — 90 days at a time", W/2, H - 130);
+
+    ctx.textAlign = "left";
+  }, [streak, milestone, userName]);
+
+  const downloadCard = () => {
+    const canvas = canvasRef.current;
+    const url = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = url; a.download = `bestself-streak-${streak}.png`;
+    a.click();
+  };
+
+  const shareText = `🔥 ${streak}-week streak on BestSelf! ${milestone ? `"${milestone.label}" unlocked.` : ""} Building my best self — 90 days at a time. #BestSelf #90DayChallenge #PersonalGrowth`;
+
+  const shareTwitter  = () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`,"_blank");
+  const shareLinkedIn = () => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent("https://bestself.app")}&summary=${encodeURIComponent(shareText)}`,"_blank");
+  const shareWhatsApp = () => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`,"_blank");
+  const copyClipboard = () => { navigator.clipboard.writeText(shareText).catch(()=>{}); setCopied(true); setTimeout(()=>setCopied(false),2200); };
+
+  const ShareBtn = ({ onClick, label, color, icon }) => (
+    <button onClick={onClick} className="tap"
+      style={{flex:1,background:`${color}14`,border:`1px solid ${color}33`,borderRadius:10,padding:"12px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer",minWidth:60}}>
+      <span style={{fontSize:18,lineHeight:1}}>{icon}</span>
+      <span style={{color,fontSize:9,fontWeight:700,letterSpacing:.5}}>{label}</span>
+    </button>
+  );
+
+  return (
+    <div className="fadein" style={{position:"fixed",inset:0,zIndex:420,background:"#000000DD",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div className="popin" style={{width:"100%",maxWidth:380,background:C.surface,borderRadius:20,border:`1px solid ${C.border}`,overflow:"hidden"}}>
+
+        {/* Preview card */}
+        <div style={{background:"#080A0F",position:"relative",padding:"32px 24px",textAlign:"center",borderBottom:`1px solid ${C.border}`}}>
+          <div style={{position:"absolute",top:-20,right:-20,width:120,height:120,borderRadius:"50%",background:`radial-gradient(circle,${milColor}22,transparent 70%)`}}/>
+          <div style={{position:"absolute",bottom:-20,left:-20,width:100,height:100,borderRadius:"50%",background:`radial-gradient(circle,${C.gold}14,transparent 70%)`}}/>
+          <Logo size={14}/>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:88,fontWeight:700,color:milColor,lineHeight:1,margin:"16px 0 8px"}}>{streak}</div>
+          <p style={{color:C.muted,fontSize:10,letterSpacing:4,fontWeight:700,marginBottom:12}}>WEEK STREAK</p>
+          {milestone && <div style={{display:"inline-block",background:`${milColor}18`,border:`1px solid ${milColor}44`,borderRadius:99,padding:"6px 18px"}}><span style={{color:milColor,fontSize:11,fontWeight:700}}>{milestone.label.toUpperCase()}</span></div>}
+          <p style={{color:C.faint,fontSize:11,marginTop:14}}>{userName || "BestSelf User"} · Building my best self</p>
+        </div>
+
+        {/* Share actions */}
+        <div style={{padding:"20px 18px 24px"}}>
+          <p style={{color:C.muted,fontSize:11,letterSpacing:2,fontWeight:600,marginBottom:14,textAlign:"center"}}>SHARE YOUR STREAK</p>
+          <div style={{display:"flex",gap:8,marginBottom:14}}>
+            <ShareBtn onClick={shareTwitter}  label="X / Twitter" color="#1DA1F2" icon="𝕏"/>
+            <ShareBtn onClick={shareLinkedIn} label="LinkedIn"    color="#0A66C2" icon={<svg width={18} height={18} viewBox="0 0 24 24" fill="#0A66C2"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>}/>
+            <ShareBtn onClick={shareWhatsApp} label="WhatsApp"   color="#25D366" icon="💬"/>
+            <ShareBtn onClick={downloadCard}  label="Instagram"  color={C.lavender} icon={<svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={C.lavender} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill={C.lavender} stroke="none"/></svg>}/>
+          </div>
+          <button onClick={copyClipboard} className="tap"
+            style={{width:"100%",background:copied?`${C.mint}20`:C.card,border:`1px solid ${copied?C.mint:C.border}`,borderRadius:10,padding:"12px",color:copied?C.mint:C.muted,fontSize:13,fontWeight:600,cursor:"pointer",transition:"all .25s",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+            {copied
+              ? <><Icons.Check size={14} color={C.mint}/> Copied to clipboard!</>
+              : <>
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                  Copy text to clipboard
+                </>
+            }
+          </button>
+          <canvas ref={canvasRef} style={{display:"none"}}/>
+        </div>
+
+        <button onClick={onClose} style={{width:"100%",background:"transparent",border:"none",borderTop:`1px solid ${C.border}`,color:C.muted,padding:"14px",fontSize:13,cursor:"pointer"}}>
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
    MILESTONE CELEBRATION MODAL
 ═══════════════════════════════════════════════════════════ */
 function MilestoneCelebration({ milestone, onClose }) {
@@ -515,7 +671,7 @@ function MilestoneCelebration({ milestone, onClose }) {
 /* ═══════════════════════════════════════════════════════════
    ANALYTICS PAGE
 ═══════════════════════════════════════════════════════════ */
-function Analytics({ data }) {
+function Analytics({ data, onShareStreak }) {
   const weeks = data.weeks || [];
   const streak = computeStreak(weeks);
   const milestone = getMilestone(streak);
@@ -556,6 +712,12 @@ function Analytics({ data }) {
           <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:44,fontWeight:700,color:C.gold,lineHeight:1}}>{streak}</div>
           <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginTop:4}}>WEEK STREAK</p>
           {milestone && <div style={{marginTop:10}}><Pill color={milestone.color}>{milestone.label}</Pill></div>}
+          {streak > 0 && (
+            <button onClick={onShareStreak} className="tap"
+              style={{marginTop:12,background:`${C.gold}18`,border:`1px solid ${C.gold}33`,color:C.gold,padding:"6px 14px",borderRadius:99,fontSize:10,fontWeight:700,letterSpacing:.5,cursor:"pointer"}}>
+              Share Streak
+            </button>
+          )}
         </Card>
         <Card style={{textAlign:"center",padding:"20px 12px"}}>
           <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:44,fontWeight:700,color:C.mint,lineHeight:1}}>{overallPct}%</div>
@@ -812,12 +974,231 @@ function Paywall({ user, setData, onClose }) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   ONBOARDING
+   AUTH SCREEN — Google / Apple / Email
 ═══════════════════════════════════════════════════════════ */
-function Onboarding({ onDone }) {
+function AuthScreen({ onAuth }) {
+  const [mode, setMode]       = useState("options"); // "options"|"email"
+  const [email, setEmail]     = useState("");
+  const [password, setPass]   = useState("");
+  const [isNew, setIsNew]     = useState(true);
+  const [loading, setLoading] = useState(null);
+  const [err, setErr]         = useState("");
+
+  const handleSocial = (provider) => {
+    setLoading(provider); setErr("");
+    // ── SWAP IN: firebase.auth().signInWithPopup(provider) ──
+    setTimeout(() => {
+      setLoading(null);
+      onAuth({ method: provider, email: `user@${provider}.com`, name: "" });
+    }, 1400);
+  };
+
+  const handleEmail = () => {
+    if (!email.trim() || !password.trim()) { setErr("Please fill in all fields."); return; }
+    if (password.length < 6) { setErr("Password must be at least 6 characters."); return; }
+    setLoading("email"); setErr("");
+    // ── SWAP IN: firebase.auth().createUserWithEmailAndPassword / signIn ──
+    setTimeout(() => {
+      setLoading(null);
+      onAuth({ method: "email", email: email.trim(), name: "" });
+    }, 1400);
+  };
+
+  const SocialBtn = ({ provider, label, icon }) => (
+    <button onClick={() => handleSocial(provider)} className="tap"
+      style={{width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 20px",display:"flex",alignItems:"center",gap:14,cursor:"pointer",marginBottom:12,position:"relative",transition:"border-color .2s"}}
+      onMouseEnter={e=>e.currentTarget.style.borderColor=C.faint}
+      onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
+      <span style={{fontSize:20,lineHeight:1,flexShrink:0}}>{icon}</span>
+      <span style={{color:C.cream,fontSize:14,fontWeight:500,flex:1,textAlign:"left"}}>{label}</span>
+      {loading===provider
+        ? <div style={{width:16,height:16,border:`2px solid ${C.sunrise}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>
+        : <svg width={16} height={16} viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke={C.faint} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      }
+    </button>
+  );
+
+  return (
+    <div className="fadein" style={{minHeight:"100vh",background:C.void,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 24px",position:"relative",overflow:"hidden"}}>
+      {/* BG glow */}
+      <div style={{position:"absolute",top:"10%",left:"50%",transform:"translateX(-50%)",width:360,height:360,borderRadius:"50%",background:`radial-gradient(circle,${C.sunrise}0D 0%,transparent 65%)`,pointerEvents:"none"}}/>
+
+      <div style={{width:"100%",maxWidth:380,position:"relative"}}>
+        <div style={{textAlign:"center",marginBottom:40}}>
+          <Logo size={22}/>
+          <H size={32} style={{marginTop:24,marginBottom:10,lineHeight:1.1}}>
+            Your best self<br/><span className="grad-text">starts here.</span>
+          </H>
+          <p style={{color:C.muted,fontSize:14,lineHeight:1.7}}>Join thousands of high performers on their 90-day journey.</p>
+        </div>
+
+        {mode === "options" && (
+          <div className="rise">
+            <SocialBtn provider="google" label="Continue with Google"
+              icon={<svg width={20} height={20} viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>}
+            />
+            <SocialBtn provider="apple" label="Continue with Apple"
+              icon={<svg width={20} height={20} viewBox="0 0 814 1000" fill={C.cream}><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-155.5-127.4C46 790.7 0 663.2 0 541.7c0-207.6 136.4-317.3 270.8-317.3 72.2 0 132.3 48.3 176.5 48.3 42.2 0 109.2-51.5 190.5-51.5 30.7 0 110.4 2.6 167.4 101.3z"/><path d="M549.8 119.3c22.1-26.4 37.5-62.9 37.5-99.4 0-5.1-.4-10.2-1.3-14.4-35.4 1.3-77.1 23.2-102.5 51.5-19.8 22.1-37.4 58.7-37.4 95.6 0 5.8.9 11.5 1.3 13.3 2.2.4 5.8.6 9.4.6 31.7 0 71.9-21 93-47.2z"/></svg>}
+            />
+            <div style={{display:"flex",alignItems:"center",gap:12,margin:"4px 0 16px"}}>
+              <div style={{flex:1,height:1,background:C.border}}/>
+              <span style={{color:C.faint,fontSize:11,letterSpacing:1}}>OR</span>
+              <div style={{flex:1,height:1,background:C.border}}/>
+            </div>
+            <button onClick={()=>setMode("email")} className="tap"
+              style={{width:"100%",background:"transparent",border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 20px",color:C.muted,fontSize:14,fontWeight:500,cursor:"pointer",marginBottom:24,display:"flex",alignItems:"center",gap:14}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor=C.faint}
+              onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
+              <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>
+              <span style={{flex:1,textAlign:"left"}}>Continue with Email</span>
+              <svg width={16} height={16} viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke={C.faint} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+            <p style={{color:C.faint,fontSize:11,textAlign:"center",lineHeight:1.7}}>
+              By continuing, you agree to our Terms of Service and Privacy Policy. Your data is yours — always.
+            </p>
+          </div>
+        )}
+
+        {mode === "email" && (
+          <div className="rise">
+            <div style={{display:"flex",gap:10,marginBottom:24}}>
+              {["Sign Up","Log In"].map((l,i)=>(
+                <button key={i} onClick={()=>setIsNew(i===0)} className="tap"
+                  style={{flex:1,padding:"10px",borderRadius:8,background:isNew===(i===0)?`linear-gradient(135deg,${C.sunrise},${C.flame})`:"transparent",border:`1px solid ${isNew===(i===0)?"transparent":C.border}`,color:isNew===(i===0)?"#fff":C.muted,fontSize:13,fontWeight:600,cursor:"pointer"}}>
+                  {l}
+                </button>
+              ))}
+            </div>
+            <div style={{marginBottom:16}}>
+              <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginBottom:8}}>EMAIL ADDRESS</p>
+              <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" type="email"
+                style={{width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.cream,fontSize:14,padding:"13px 16px",outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}
+                onFocus={e=>e.target.style.borderColor=C.sunrise} onBlur={e=>e.target.style.borderColor=C.border}/>
+            </div>
+            <div style={{marginBottom:8}}>
+              <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginBottom:8}}>PASSWORD</p>
+              <input value={password} onChange={e=>setPass(e.target.value)} placeholder="At least 6 characters" type="password"
+                style={{width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.cream,fontSize:14,padding:"13px 16px",outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}
+                onFocus={e=>e.target.style.borderColor=C.sunrise} onBlur={e=>e.target.style.borderColor=C.border}
+                onKeyDown={e=>e.key==="Enter"&&handleEmail()}/>
+            </div>
+            {err && <p style={{color:C.coral,fontSize:12,marginBottom:12}}>{err}</p>}
+            <div style={{height:20}}/>
+            <Btn full onClick={handleEmail} style={{padding:"15px",fontSize:15,marginBottom:14}}>
+              {loading==="email"
+                ? <span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><div style={{width:14,height:14,border:"2px solid #fff",borderTopColor:"transparent",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> {isNew?"Creating account...":"Signing in..."}</span>
+                : isNew ? "Create My Account" : "Sign In"
+              }
+            </Btn>
+            <button onClick={()=>{setMode("options");setErr("");}} style={{width:"100%",background:"transparent",border:"none",color:C.muted,fontSize:12,cursor:"pointer",padding:"8px"}}>← Back to options</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DEMOGRAPHICS SCREEN — optional, skippable
+═══════════════════════════════════════════════════════════ */
+function DemographicsScreen({ authData, onDone }) {
+  const [name,    setName]    = useState(authData?.name || "");
+  const [phone,   setPhone]   = useState("");
+  const [gender,  setGender]  = useState("");
+  const [dob,     setDob]     = useState("");
+  const [country, setCountry] = useState("");
+
+  const COUNTRIES = ["United States","United Kingdom","Canada","Australia","Nigeria","Ghana","Kenya","South Africa","India","Germany","France","Brazil","Jamaica","Trinidad & Tobago","Other"];
+  const GENDERS   = ["Man","Woman","Non-binary","Prefer not to say"];
+
+  const inp = (label, child) => (
+    <div style={{marginBottom:18}}>
+      <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginBottom:8,fontWeight:600}}>{label}</p>
+      {child}
+    </div>
+  );
+  const styl = {width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.cream,fontSize:14,padding:"12px 16px",outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"};
+
+  const proceed = (skip=false) => {
+    onDone({
+      name:    name.trim() || authData?.name || "",
+      email:   authData?.email || "",
+      phone:   skip ? "" : phone,
+      gender:  skip ? "" : gender,
+      dob:     skip ? "" : dob,
+      country: skip ? "" : country,
+      authMethod: authData?.method || "email",
+    });
+  };
+
+  return (
+    <div className="fadein" style={{minHeight:"100vh",background:C.void,display:"flex",flexDirection:"column",padding:"0 0 40px",overflowY:"auto"}}>
+      {/* Header bar */}
+      <div style={{padding:"24px 24px 0",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+        <Logo size={16}/>
+        <button onClick={()=>proceed(true)} style={{background:"transparent",border:"none",color:C.muted,fontSize:12,cursor:"pointer",letterSpacing:.5}}>Skip for now</button>
+      </div>
+      <div style={{margin:"16px 24px 0",height:1,background:`linear-gradient(90deg,${C.gold}55,transparent)`}}/>
+
+      <div style={{flex:1,padding:"32px 24px 0",maxWidth:420,width:"100%",margin:"0 auto"}}>
+        {/* Progress indicator */}
+        <div style={{display:"flex",gap:6,marginBottom:28}}>
+          {[1,2,3].map(i=><div key={i} style={{height:3,flex:1,borderRadius:99,background:i<=2?`linear-gradient(90deg,${C.sunrise},${C.gold})`:C.faint}}/>)}
+        </div>
+
+        <Lbl color={C.gold}>STEP 2 OF 3</Lbl>
+        <H size={28} style={{marginBottom:8,lineHeight:1.15}}>Tell us a little<br/><span className="grad-text">about yourself</span></H>
+        <p style={{color:C.muted,fontSize:13,lineHeight:1.7,marginBottom:28}}>All fields are optional. This helps us personalize your experience.</p>
+
+        {inp("YOUR NAME *", (
+          <input value={name} onChange={e=>setName(e.target.value)} placeholder="Full name" style={styl}
+            onFocus={e=>e.target.style.borderColor=C.sunrise} onBlur={e=>e.target.style.borderColor=C.border}/>
+        ))}
+        {inp("PHONE NUMBER", (
+          <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+1 (555) 000-0000" type="tel" style={styl}
+            onFocus={e=>e.target.style.borderColor=C.sunrise} onBlur={e=>e.target.style.borderColor=C.border}/>
+        ))}
+        {inp("GENDER", (
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {GENDERS.map(g=>(
+              <button key={g} onClick={()=>setGender(gender===g?"":g)} className="tap"
+                style={{padding:"8px 14px",borderRadius:99,background:gender===g?`${C.sunrise}20`:"transparent",border:`1px solid ${gender===g?C.sunrise:C.border}`,color:gender===g?C.sunrise:C.muted,fontSize:12,fontWeight:500,cursor:"pointer",transition:"all .2s"}}>
+                {g}
+              </button>
+            ))}
+          </div>
+        ))}
+        {inp("DATE OF BIRTH", (
+          <input value={dob} onChange={e=>setDob(e.target.value)} type="date" style={{...styl,colorScheme:"dark"}}/>
+        ))}
+        {inp("COUNTRY", (
+          <select value={country} onChange={e=>setCountry(e.target.value)}
+            style={{...styl,appearance:"none",backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A8099' strokeWidth='1.5' fill='none' strokeLinecap='round'/%3E%3C/svg%3E")`,backgroundRepeat:"no-repeat",backgroundPosition:"right 14px center"}}>
+            <option value="">Select your country</option>
+            {COUNTRIES.map(c=><option key={c} value={c}>{c}</option>)}
+          </select>
+        ))}
+
+        <div style={{marginTop:8}}>
+          <Btn full onClick={()=>proceed(false)} style={{padding:"15px",fontSize:15,marginBottom:12}}>
+            Continue
+          </Btn>
+          <button onClick={()=>proceed(true)} style={{width:"100%",background:"transparent",border:"none",color:C.faint,fontSize:12,cursor:"pointer",padding:"8px"}}>
+            Skip — I'll fill this in later
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ONBOARDING  — slides + role step (step 3 of 3)
+═══════════════════════════════════════════════════════════ */
+function Onboarding({ onDone, prefillName="" }) {
   const [step, setStep]     = useState(0);
   const [form, setForm]     = useState(false);
-  const [name, setName]     = useState("");
+  const [name, setName]     = useState(prefillName);
   const [role, setRole]     = useState("");
 
   const s = ONBOARD_SLIDES[step];
@@ -828,17 +1209,21 @@ function Onboarding({ onDone }) {
       <div style={{position:"absolute",top:"15%",left:"50%",transform:"translateX(-50%)",width:300,height:300,borderRadius:"50%",background:`radial-gradient(circle,${C.sunrise}14 0%,transparent 65%)`,pointerEvents:"none"}}/>
       <div style={{width:"100%",maxWidth:380,position:"relative"}}>
         <Logo size={20}/>
-        <div style={{height:28}}/>
-        <Lbl>YOUR PROFILE</Lbl>
-        <H size={30} style={{marginBottom:8}}>Who is becoming<br/><span className="grad-text">their BestSelf?</span></H>
-        <p style={{color:C.muted,fontSize:14,lineHeight:1.7,marginBottom:32}}>Your 90-day transformation starts the moment you commit.</p>
+        <div style={{height:20}}/>
+        {/* Step indicator */}
+        <div style={{display:"flex",gap:6,marginBottom:24}}>
+          {[1,2,3].map(i=><div key={i} style={{height:3,flex:1,borderRadius:99,background:i<=3?`linear-gradient(90deg,${C.sunrise},${C.gold})`:C.faint}}/>)}
+        </div>
+        <Lbl>STEP 3 OF 3</Lbl>
+        <H size={30} style={{marginBottom:8}}>How should we<br/><span className="grad-text">know you?</span></H>
+        <p style={{color:C.muted,fontSize:14,lineHeight:1.7,marginBottom:28}}>Your 90-day transformation starts the moment you commit.</p>
         <div style={{marginBottom:18}}>
           <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginBottom:8}}>YOUR NAME</p>
           <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name"
             style={{width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.cream,fontSize:17,fontFamily:"'Cormorant Garamond',serif",padding:"13px 16px",outline:"none"}}
             onFocus={e=>e.target.style.borderColor=C.sunrise} onBlur={e=>e.target.style.borderColor=C.border}/>
         </div>
-        <div style={{marginBottom:36}}>
+        <div style={{marginBottom:32}}>
           <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginBottom:8}}>ROLE OR TAGLINE</p>
           <input value={role} onChange={e=>setRole(e.target.value)} placeholder="e.g. Marketing Leader · Entrepreneur"
             style={{width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.cream,fontSize:14,fontFamily:"'Plus Jakarta Sans',sans-serif",padding:"13px 16px",outline:"none"}}
@@ -913,7 +1298,7 @@ function useRotatingQuote(data, setData) {
 /* ═══════════════════════════════════════════════════════════
    DASHBOARD
 ═══════════════════════════════════════════════════════════ */
-function Dashboard({ data, setData, showMilestone }) {
+function Dashboard({ data, setData, showMilestone, onShareStreak }) {
   const quote = useRotatingQuote(data, setData);
   const days  = Math.min(90, Math.max(0, Math.floor((Date.now()-new Date(data.user.trialStart||data.user.joinDate))/86400000)));
   const pct90 = Math.round((days/90)*100);
@@ -981,7 +1366,7 @@ function Dashboard({ data, setData, showMilestone }) {
       {/* Stats */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:18}}>
         {[
-          {label:"Week Streak",   value:streak,                                              color:C.gold,   sub: milestone?.label || null},
+          {label:"Week Streak",   value:streak,  color:C.gold,   sub: milestone?.label || null, share: streak>0},
           {label:"Weeks Logged",  value:data.weeks.length,                                   color:C.mint},
           {label:"90-Day Goals",  value:totalGoals,                                          color:"#60A5FA"},
           {label:"Completed",     value:data.weeks.filter(w=>w.done).length,                 color:C.sunrise},
@@ -991,6 +1376,12 @@ function Dashboard({ data, setData, showMilestone }) {
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:30,color:C.cream,fontWeight:700,lineHeight:1,marginBottom:4}}>{s.value}</div>
             <div style={{color:C.muted,fontSize:10,letterSpacing:1,fontWeight:600}}>{s.label.toUpperCase()}</div>
             {s.sub && <div style={{marginTop:6}}><Pill color={C.gold}>{s.sub}</Pill></div>}
+            {s.share && onShareStreak && (
+              <button onClick={onShareStreak} className="tap"
+                style={{marginTop:8,background:`${C.gold}14`,border:`1px solid ${C.gold}33`,color:C.gold,padding:"4px 10px",borderRadius:99,fontSize:9,fontWeight:700,letterSpacing:.5,cursor:"pointer"}}>
+                Share
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -1629,21 +2020,24 @@ const ALL_PAGES = [
 
 export default function App() {
   const [data, setRaw]          = useState(loadData);
-  const [onboarded, setOnboarded] = useState(false);
+  const [authStep, setAuthStep] = useState("auth"); // "auth"|"demo"|"onboard"|"done"
+  const [authData, setAuthData] = useState(null);
   const [tab, setTab]           = useState("home");
   const [drawer, setDrawer]     = useState(false);
-  const [paywallOpen, setPaywallOpen] = useState(false);
-  const [milestone, setMilestone]     = useState(null);
+  const [paywallOpen, setPaywallOpen]   = useState(false);
+  const [milestone, setMilestone]       = useState(null);
+  const [streakShare, setStreakShare]   = useState(false);
   const prevStreakRef = useRef(null);
 
-  useEffect(()=>{ if(data.user.name) setOnboarded(true); },[]);
-
-  // Show paywall when trial expires
+  // Check if already onboarded
   useEffect(()=>{
-    if (onboarded && isLocked(data.user)) setPaywallOpen(true);
-  },[onboarded]);
+    if (data.user.name) setAuthStep("done");
+  },[]);
 
-  // Detect milestone achievements
+  useEffect(()=>{
+    if (authStep==="done" && isLocked(data.user)) setPaywallOpen(true);
+  },[authStep]);
+
   useEffect(()=>{
     const streak = computeStreak(data.weeks);
     const prev   = prevStreakRef.current;
@@ -1652,27 +2046,62 @@ export default function App() {
       if (hit) setMilestone(hit);
     }
     prevStreakRef.current = streak;
-  }, [data.weeks]);
+  },[data.weeks]);
 
   const setData = fn => setRaw(prev=>{ const next=typeof fn==="function"?fn(prev):fn; persist(next); return next; });
 
-  const finish = (name, role) => {
-    setData(d=>({...d,user:{...d.user,name,role,joinDate:new Date().toISOString().slice(0,10),trialStart:new Date().toISOString().slice(0,10)}}));
-    setOnboarded(true);
+  // Step 1: Auth complete
+  const handleAuth = (authInfo) => {
+    setAuthData(authInfo);
+    setAuthStep("demo");
+  };
+
+  // Step 2: Demographics complete (or skipped)
+  const handleDemo = (demoInfo) => {
+    setData(d=>({...d, user:{...d.user,
+      email:      demoInfo.email || "",
+      phone:      demoInfo.phone || "",
+      gender:     demoInfo.gender || "",
+      dob:        demoInfo.dob || "",
+      country:    demoInfo.country || "",
+      authMethod: demoInfo.authMethod || "",
+    }}));
+    setAuthStep("onboard");
+  };
+
+  // Step 3: Onboarding (role + name) complete
+  const handleOnboard = (name, role) => {
+    setData(d=>({...d,user:{...d.user,
+      name, role,
+      joinDate:   new Date().toISOString().slice(0,10),
+      trialStart: new Date().toISOString().slice(0,10),
+    }}));
+    setAuthStep("done");
   };
 
   const showPaywall = () => setPaywallOpen(true);
 
-  if (!onboarded) return <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",maxWidth:480,margin:"0 auto"}}><Styles/><Onboarding onDone={finish}/></div>;
+  // ── Render auth flow steps ──
+  if (authStep==="auth") return (
+    <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",maxWidth:480,margin:"0 auto"}}><Styles/><AuthScreen onAuth={handleAuth}/></div>
+  );
+  if (authStep==="demo") return (
+    <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",maxWidth:480,margin:"0 auto"}}><Styles/><DemographicsScreen authData={authData} onDone={handleDemo}/></div>
+  );
+  if (authStep==="onboard") return (
+    <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",maxWidth:480,margin:"0 auto"}}><Styles/><Onboarding onDone={handleOnboard} prefillName={authData?.name||""}/></div>
+  );
+
+  const streak = computeStreak(data.weeks);
 
   const pages = {
-    home:      <Dashboard data={data} setData={setData} showMilestone={()=>setMilestone(getMilestone(computeStreak(data.weeks)))}/>,
+    home:      <Dashboard data={data} setData={setData} showMilestone={()=>setMilestone(getMilestone(streak))} onShareStreak={()=>setStreakShare(true)}/>,
     annual:    <AnnualGoals data={data} setData={setData} showPaywall={showPaywall}/>,
     "90day":   <Goals90 data={data} setData={setData} showPaywall={showPaywall}/>,
     weekly:    <Weekly data={data} setData={setData}/>,
     identity:  <Identity data={data} setData={setData}/>,
     reading:   <Reading data={data} setData={setData}/>,
-    analytics: <Analytics data={data}/>,
+    analytics: <Analytics data={data} onShareStreak={()=>setStreakShare(true)}/>,
   };
 
   return (
@@ -1684,6 +2113,9 @@ export default function App() {
 
       {/* Milestone celebration */}
       {milestone && <MilestoneCelebration milestone={milestone} onClose={()=>setMilestone(null)}/>}
+
+      {/* Streak share modal */}
+      {streakShare && <StreakShareModal streak={streak} userName={data.user.name} milestone={getMilestone(streak)} onClose={()=>setStreakShare(false)}/>}
 
       {/* Header */}
       <div style={{position:"sticky",top:0,zIndex:50,background:`${C.void}EE`,backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderBottom:`1px solid ${C.border}`,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
