@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from "recharts";
+import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, BarChart, Bar as RechartsBar, XAxis, YAxis, Tooltip, Cell } from "recharts";
 
 /*
   BestSelf — Your 90-Day Personal Performance System
@@ -740,9 +740,9 @@ function Analytics({ data, onShareStreak }) {
                 formatter={(v, _, props) => [`${v}% (${props.payload.done}/${props.payload.total})`, props.payload.full]}
                 cursor={{fill:`${C.faint}22`}}
               />
-              <Bar dataKey="pct" radius={[4,4,0,0]}>
+              <RechartsBar dataKey="pct" radius={[4,4,0,0]}>
                 {dimData.map((d, i) => <Cell key={i} fill={d.color} opacity={0.85}/>)}
-              </Bar>
+              </RechartsBar>
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -772,7 +772,7 @@ function Analytics({ data, onShareStreak }) {
               <XAxis dataKey="name" tick={{fill:C.muted,fontSize:9}} axisLine={false} tickLine={false}/>
               <YAxis tick={{fill:C.muted,fontSize:9}} axisLine={false} tickLine={false}/>
               <Tooltip contentStyle={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,fontSize:11}} labelStyle={{color:C.cream}} cursor={{fill:`${C.faint}22`}}/>
-              <Bar dataKey="goals" fill={C.sunrise} radius={[3,3,0,0]} opacity={0.85}/>
+              <RechartsBar dataKey="goals" fill={C.sunrise} radius={[3,3,0,0]} opacity={0.85}/>
             </BarChart>
           </ResponsiveContainer>
         </Card>
