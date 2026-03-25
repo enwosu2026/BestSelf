@@ -223,13 +223,7 @@ function loadData() {
 }
 function seed() {
   return {
-    user: {
-      name: "", role: "", email: "", phone: "", gender: "", dob: "", country: "",
-      authMethod: "", // "google"|"apple"|"email"
-      joinDate: new Date().toISOString().slice(0,10),
-      subscribed: false,
-      trialStart: new Date().toISOString().slice(0,10),
-    },
+    user: { name: "", role: "", joinDate: new Date().toISOString().slice(0,10), subscribed: false, trialStart: new Date().toISOString().slice(0,10) },
     annualGoalSets: [],   // [{ year, goals: { spiritual:[...], ... } }]
     cycleGoalSets:  [],   // [{ label, startDate, goals: { ... } }]
     weeks: [],
@@ -494,156 +488,6 @@ function Divider({ style={} }) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   STREAK SHARE MODAL
-═══════════════════════════════════════════════════════════ */
-function StreakShareModal({ streak, userName, milestone, onClose }) {
-  const canvasRef = useRef(null);
-  const [copied, setCopied] = useState(false);
-  const milColor = milestone?.color || C.gold;
-  const milLabel = milestone?.label || `${streak}-Week Streak`;
-
-  // Draw the share card onto canvas
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const W = 1080, H = 1080;
-    canvas.width = W; canvas.height = H;
-
-    // Background
-    ctx.fillStyle = "#080A0F";
-    ctx.fillRect(0, 0, W, H);
-
-    // Radial glow top-right
-    const g1 = ctx.createRadialGradient(W*0.8, H*0.15, 0, W*0.8, H*0.15, 400);
-    g1.addColorStop(0, `${milColor}22`); g1.addColorStop(1, "transparent");
-    ctx.fillStyle = g1; ctx.fillRect(0, 0, W, H);
-
-    // Radial glow bottom-left
-    const g2 = ctx.createRadialGradient(W*0.15, H*0.85, 0, W*0.15, H*0.85, 320);
-    g2.addColorStop(0, "#F4C54218"); g2.addColorStop(1, "transparent");
-    ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
-
-    // Border
-    ctx.strokeStyle = `${milColor}40`;
-    ctx.lineWidth = 3;
-    ctx.strokeRect(30, 30, W-60, H-60);
-
-    // BestSelf wordmark
-    ctx.fillStyle = "#F0ECE3";
-    ctx.font = "bold 52px serif";
-    ctx.fillText("Best", 80, 120);
-    ctx.fillStyle = "#FF6B35";
-    ctx.fillText("Self", 80 + ctx.measureText("Best").width, 120);
-
-    // Streak number
-    ctx.fillStyle = milColor;
-    ctx.font = `bold 280px serif`;
-    ctx.textAlign = "center";
-    ctx.fillText(streak, W/2, H/2 - 40);
-
-    // WEEK STREAK label
-    ctx.fillStyle = "#7A8099";
-    ctx.font = "600 52px 'Arial', sans-serif";
-    ctx.letterSpacing = "12px";
-    ctx.fillText("WEEK STREAK", W/2, H/2 + 70);
-
-    // Milestone badge
-    if (milestone) {
-      ctx.fillStyle = `${milColor}22`;
-      ctx.beginPath();
-      ctx.roundRect(W/2 - 220, H/2 + 120, 440, 80, 40);
-      ctx.fill();
-      ctx.strokeStyle = `${milColor}55`;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.fillStyle = milColor;
-      ctx.font = "700 34px 'Arial', sans-serif";
-      ctx.fillText(milLabel.toUpperCase(), W/2, H/2 + 172);
-    }
-
-    // Name
-    ctx.fillStyle = "#D8D4CC";
-    ctx.font = "400 44px serif";
-    ctx.fillText(userName || "BestSelf User", W/2, H - 200);
-
-    // Tagline
-    ctx.fillStyle = "#3A4155";
-    ctx.font = "400 34px 'Arial', sans-serif";
-    ctx.fillText("Building my BestSelf — 90 days at a time", W/2, H - 130);
-
-    ctx.textAlign = "left";
-  }, [streak, milestone, userName]);
-
-  const downloadCard = () => {
-    const canvas = canvasRef.current;
-    const url = canvas.toDataURL("image/png");
-    const a = document.createElement("a");
-    a.href = url; a.download = `bestself-streak-${streak}.png`;
-    a.click();
-  };
-
-  const shareText = `🔥 ${streak}-week streak on BestSelf! ${milestone ? `"${milestone.label}" unlocked.` : ""} Building my best self — 90 days at a time. #BestSelf #90DayChallenge #PersonalGrowth`;
-
-  const shareTwitter  = () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`,"_blank");
-  const shareLinkedIn = () => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent("https://bestself.app")}&summary=${encodeURIComponent(shareText)}`,"_blank");
-  const shareWhatsApp = () => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`,"_blank");
-  const copyClipboard = () => { navigator.clipboard.writeText(shareText).catch(()=>{}); setCopied(true); setTimeout(()=>setCopied(false),2200); };
-
-  const ShareBtn = ({ onClick, label, color, icon }) => (
-    <button onClick={onClick} className="tap"
-      style={{flex:1,background:`${color}14`,border:`1px solid ${color}33`,borderRadius:10,padding:"12px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer",minWidth:60}}>
-      <span style={{fontSize:18,lineHeight:1}}>{icon}</span>
-      <span style={{color,fontSize:9,fontWeight:700,letterSpacing:.5}}>{label}</span>
-    </button>
-  );
-
-  return (
-    <div className="fadein" style={{position:"fixed",inset:0,zIndex:420,background:"#000000DD",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div className="popin" style={{width:"100%",maxWidth:380,background:C.surface,borderRadius:20,border:`1px solid ${C.border}`,overflow:"hidden"}}>
-
-        {/* Preview card */}
-        <div style={{background:"#080A0F",position:"relative",padding:"32px 24px",textAlign:"center",borderBottom:`1px solid ${C.border}`}}>
-          <div style={{position:"absolute",top:-20,right:-20,width:120,height:120,borderRadius:"50%",background:`radial-gradient(circle,${milColor}22,transparent 70%)`}}/>
-          <div style={{position:"absolute",bottom:-20,left:-20,width:100,height:100,borderRadius:"50%",background:`radial-gradient(circle,${C.gold}14,transparent 70%)`}}/>
-          <Logo size={14}/>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:88,fontWeight:700,color:milColor,lineHeight:1,margin:"16px 0 8px"}}>{streak}</div>
-          <p style={{color:C.muted,fontSize:10,letterSpacing:4,fontWeight:700,marginBottom:12}}>WEEK STREAK</p>
-          {milestone && <div style={{display:"inline-block",background:`${milColor}18`,border:`1px solid ${milColor}44`,borderRadius:99,padding:"6px 18px"}}><span style={{color:milColor,fontSize:11,fontWeight:700}}>{milestone.label.toUpperCase()}</span></div>}
-          <p style={{color:C.faint,fontSize:11,marginTop:14}}>{userName || "BestSelf User"} · Building my best self</p>
-        </div>
-
-        {/* Share actions */}
-        <div style={{padding:"20px 18px 24px"}}>
-          <p style={{color:C.muted,fontSize:11,letterSpacing:2,fontWeight:600,marginBottom:14,textAlign:"center"}}>SHARE YOUR STREAK</p>
-          <div style={{display:"flex",gap:8,marginBottom:14}}>
-            <ShareBtn onClick={shareTwitter}  label="X / Twitter" color="#1DA1F2" icon="𝕏"/>
-            <ShareBtn onClick={shareLinkedIn} label="LinkedIn"    color="#0A66C2" icon={<svg width={18} height={18} viewBox="0 0 24 24" fill="#0A66C2"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>}/>
-            <ShareBtn onClick={shareWhatsApp} label="WhatsApp"   color="#25D366" icon="💬"/>
-            <ShareBtn onClick={downloadCard}  label="Instagram"  color={C.lavender} icon={<svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={C.lavender} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill={C.lavender} stroke="none"/></svg>}/>
-          </div>
-          <button onClick={copyClipboard} className="tap"
-            style={{width:"100%",background:copied?`${C.mint}20`:C.card,border:`1px solid ${copied?C.mint:C.border}`,borderRadius:10,padding:"12px",color:copied?C.mint:C.muted,fontSize:13,fontWeight:600,cursor:"pointer",transition:"all .25s",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-            {copied
-              ? <><Icons.Check size={14} color={C.mint}/> Copied to clipboard!</>
-              : <>
-                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                  Copy text to clipboard
-                </>
-            }
-          </button>
-          <canvas ref={canvasRef} style={{display:"none"}}/>
-        </div>
-
-        <button onClick={onClose} style={{width:"100%",background:"transparent",border:"none",borderTop:`1px solid ${C.border}`,color:C.muted,padding:"14px",fontSize:13,cursor:"pointer"}}>
-          Close
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════
    MILESTONE CELEBRATION MODAL
 ═══════════════════════════════════════════════════════════ */
 function MilestoneCelebration({ milestone, onClose }) {
@@ -671,7 +515,7 @@ function MilestoneCelebration({ milestone, onClose }) {
 /* ═══════════════════════════════════════════════════════════
    ANALYTICS PAGE
 ═══════════════════════════════════════════════════════════ */
-function Analytics({ data, onShareStreak }) {
+function Analytics({ data }) {
   const weeks = data.weeks || [];
   const streak = computeStreak(weeks);
   const milestone = getMilestone(streak);
@@ -700,7 +544,6 @@ function Analytics({ data, onShareStreak }) {
   const totalGoalsDone     = dimData.reduce((a, d) => a + d.done, 0);
   const overallPct         = totalGoalsSet > 0 ? Math.round((totalGoalsDone / totalGoalsSet) * 100) : 0;
   const completedWeeks     = weeks.filter(w => w.done).length;
-
   return (
     <div>
       <H size={26} style={{marginBottom:4}}>Analytics</H>
@@ -712,12 +555,6 @@ function Analytics({ data, onShareStreak }) {
           <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:44,fontWeight:700,color:C.gold,lineHeight:1}}>{streak}</div>
           <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginTop:4}}>WEEK STREAK</p>
           {milestone && <div style={{marginTop:10}}><Pill color={milestone.color}>{milestone.label}</Pill></div>}
-          {streak > 0 && (
-            <button onClick={onShareStreak} className="tap"
-              style={{marginTop:12,background:`${C.gold}18`,border:`1px solid ${C.gold}33`,color:C.gold,padding:"6px 14px",borderRadius:99,fontSize:10,fontWeight:700,letterSpacing:.5,cursor:"pointer"}}>
-              Share Streak
-            </button>
-          )}
         </Card>
         <Card style={{textAlign:"center",padding:"20px 12px"}}>
           <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:44,fontWeight:700,color:C.mint,lineHeight:1}}>{overallPct}%</div>
@@ -798,7 +635,7 @@ function ShareCard({ week, weekNum, userName, onClose }) {
 
   const copyText = () => {
     const lines = [
-      `✦ BestSelf — Week ${weekNum} in Review`,
+      `✦ BestSelf — Blueprint ${weekNum} Review`,
       `${userName || "My"} week of ${date}`,
       "",
       wins.length  ? `WINS:\n${wins.map((w,i)=>`${i+1}. ${w}`).join("\n")}` : "",
@@ -823,12 +660,12 @@ function ShareCard({ week, weekNum, userName, onClose }) {
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:22,position:"relative"}}>
             <Logo size={15}/>
             <div style={{textAlign:"right"}}>
-              <p style={{color:C.sunrise,fontSize:10,fontWeight:700,letterSpacing:2}}>WEEK {weekNum}</p>
+              <p style={{color:C.sunrise,fontSize:10,fontWeight:700,letterSpacing:2}}>BLUEPRINT {weekNum}</p>
               <p style={{color:C.muted,fontSize:10,marginTop:2}}>{date}</p>
             </div>
           </div>
 
-          <h2 style={{fontFamily:"'Cormorant Garamond',serif",color:C.cream,fontSize:26,fontWeight:700,marginBottom:4,position:"relative"}}>Week in Review</h2>
+          <h2 style={{fontFamily:"'Cormorant Garamond',serif",color:C.cream,fontSize:26,fontWeight:700,marginBottom:4,position:"relative"}}>Weekly Blueprint Review</h2>
           <p style={{color:C.muted,fontSize:12,marginBottom:22,position:"relative"}}>{userName || "BestSelf User"}</p>
 
           {/* Wins */}
@@ -974,272 +811,248 @@ function Paywall({ user, setData, onClose }) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   AUTH SCREEN — Google / Apple / Email
+   AUTH SCREEN  — Google / Apple / Email (UI only)
 ═══════════════════════════════════════════════════════════ */
-function AuthScreen({ onAuth }) {
-  const [mode, setMode]       = useState("options"); // "options"|"email"
-  const [email, setEmail]     = useState("");
-  const [password, setPass]   = useState("");
-  const [isNew, setIsNew]     = useState(true);
-  const [loading, setLoading] = useState(null);
-  const [err, setErr]         = useState("");
+function AuthScreen({ onNext }) {
+  const [emailMode, setEmailMode] = useState(false);
+  const [email, setEmail]         = useState("");
+  const [password, setPassword]   = useState("");
+  const [isLogin, setIsLogin]     = useState(false);
 
   const handleSocial = (provider) => {
-    setLoading(provider); setErr("");
-    // ── SWAP IN: firebase.auth().signInWithPopup(provider) ──
-    setTimeout(() => {
-      setLoading(null);
-      onAuth({ method: provider, email: `user@${provider}.com`, name: "" });
-    }, 1400);
+    // UI only — real OAuth wired in data layer phase
+    onNext({ provider });
   };
 
   const handleEmail = () => {
-    if (!email.trim() || !password.trim()) { setErr("Please fill in all fields."); return; }
-    if (password.length < 6) { setErr("Password must be at least 6 characters."); return; }
-    setLoading("email"); setErr("");
-    // ── SWAP IN: firebase.auth().createUserWithEmailAndPassword / signIn ──
-    setTimeout(() => {
-      setLoading(null);
-      onAuth({ method: "email", email: email.trim(), name: "" });
-    }, 1400);
+    if (!email.trim() || !password.trim()) return;
+    onNext({ provider: "email", email: email.trim() });
   };
 
-  const SocialBtn = ({ provider, label, icon }) => (
-    <button onClick={() => handleSocial(provider)} className="tap"
-      style={{width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 20px",display:"flex",alignItems:"center",gap:14,cursor:"pointer",marginBottom:12,position:"relative",transition:"border-color .2s"}}
-      onMouseEnter={e=>e.currentTarget.style.borderColor=C.faint}
-      onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
-      <span style={{fontSize:20,lineHeight:1,flexShrink:0}}>{icon}</span>
-      <span style={{color:C.cream,fontSize:14,fontWeight:500,flex:1,textAlign:"left"}}>{label}</span>
-      {loading===provider
-        ? <div style={{width:16,height:16,border:`2px solid ${C.sunrise}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>
-        : <svg width={16} height={16} viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke={C.faint} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-      }
-    </button>
-  );
-
   return (
-    <div className="fadein" style={{minHeight:"100vh",background:C.void,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 24px",position:"relative",overflow:"hidden"}}>
-      {/* BG glow */}
-      <div style={{position:"absolute",top:"10%",left:"50%",transform:"translateX(-50%)",width:360,height:360,borderRadius:"50%",background:`radial-gradient(circle,${C.sunrise}0D 0%,transparent 65%)`,pointerEvents:"none"}}/>
+    <div className="fadein" style={{minHeight:"100vh",background:C.void,display:"flex",flexDirection:"column",position:"relative",overflow:"hidden"}}>
+      {/* Background glow */}
+      <div style={{position:"absolute",top:"10%",left:"50%",transform:"translateX(-50%)",width:340,height:340,borderRadius:"50%",background:`radial-gradient(circle,${C.sunrise}12 0%,transparent 65%)`,pointerEvents:"none"}}/>
+      <div style={{position:"absolute",bottom:"5%",right:"-10%",width:200,height:200,borderRadius:"50%",background:`radial-gradient(circle,${C.gold}0E 0%,transparent 65%)`,pointerEvents:"none"}}/>
 
-      <div style={{width:"100%",maxWidth:380,position:"relative"}}>
-        <div style={{textAlign:"center",marginBottom:40}}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 28px"}}>
+        {/* Logo */}
+        <div className="float" style={{marginBottom:32}}>
           <Logo size={22}/>
-          <H size={32} style={{marginTop:24,marginBottom:10,lineHeight:1.1}}>
-            Your best self<br/><span className="grad-text">starts here.</span>
-          </H>
-          <p style={{color:C.muted,fontSize:14,lineHeight:1.7}}>Join thousands of high performers on their 90-day journey.</p>
         </div>
 
-        {mode === "options" && (
-          <div className="rise">
-            <SocialBtn provider="google" label="Continue with Google"
-              icon={<svg width={20} height={20} viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>}
-            />
-            <SocialBtn provider="apple" label="Continue with Apple"
-              icon={<svg width={20} height={20} viewBox="0 0 814 1000" fill={C.cream}><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-155.5-127.4C46 790.7 0 663.2 0 541.7c0-207.6 136.4-317.3 270.8-317.3 72.2 0 132.3 48.3 176.5 48.3 42.2 0 109.2-51.5 190.5-51.5 30.7 0 110.4 2.6 167.4 101.3z"/><path d="M549.8 119.3c22.1-26.4 37.5-62.9 37.5-99.4 0-5.1-.4-10.2-1.3-14.4-35.4 1.3-77.1 23.2-102.5 51.5-19.8 22.1-37.4 58.7-37.4 95.6 0 5.8.9 11.5 1.3 13.3 2.2.4 5.8.6 9.4.6 31.7 0 71.9-21 93-47.2z"/></svg>}
-            />
-            <div style={{display:"flex",alignItems:"center",gap:12,margin:"4px 0 16px"}}>
+        {/* Headline */}
+        <H size={34} style={{textAlign:"center",marginBottom:10,lineHeight:1.1}}>
+          Your Best<br/><span className="grad-text">Self Awaits.</span>
+        </H>
+        <p style={{color:C.muted,fontSize:14,textAlign:"center",lineHeight:1.7,marginBottom:40,maxWidth:300}}>
+          {isLogin ? "Welcome back. Pick up where you left off." : `Start your free ${TRIAL_DAYS}-day trial. No credit card needed.`}
+        </p>
+
+        {!emailMode ? (
+          <div style={{width:"100%",maxWidth:360,display:"flex",flexDirection:"column",gap:12}}>
+            {/* Google */}
+            <button onClick={()=>handleSocial("google")} className="tap"
+              style={{width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"15px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:12,cursor:"pointer",color:C.cream,fontSize:14,fontWeight:600,transition:"border-color .2s"}}
+              onMouseOver={e=>e.currentTarget.style.borderColor=C.sunrise}
+              onMouseOut={e=>e.currentTarget.style.borderColor=C.border}>
+              <svg width={20} height={20} viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              Continue with Google
+            </button>
+
+            {/* Apple */}
+            <button onClick={()=>handleSocial("apple")} className="tap"
+              style={{width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"15px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:12,cursor:"pointer",color:C.cream,fontSize:14,fontWeight:600,transition:"border-color .2s"}}
+              onMouseOver={e=>e.currentTarget.style.borderColor=C.cream}
+              onMouseOut={e=>e.currentTarget.style.borderColor=C.border}>
+              <svg width={20} height={20} viewBox="0 0 24 24" fill={C.cream}>
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+              </svg>
+              Continue with Apple
+            </button>
+
+            {/* Divider */}
+            <div style={{display:"flex",alignItems:"center",gap:12,margin:"4px 0"}}>
               <div style={{flex:1,height:1,background:C.border}}/>
               <span style={{color:C.faint,fontSize:11,letterSpacing:1}}>OR</span>
               <div style={{flex:1,height:1,background:C.border}}/>
             </div>
-            <button onClick={()=>setMode("email")} className="tap"
-              style={{width:"100%",background:"transparent",border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 20px",color:C.muted,fontSize:14,fontWeight:500,cursor:"pointer",marginBottom:24,display:"flex",alignItems:"center",gap:14}}
-              onMouseEnter={e=>e.currentTarget.style.borderColor=C.faint}
-              onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
-              <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>
-              <span style={{flex:1,textAlign:"left"}}>Continue with Email</span>
-              <svg width={16} height={16} viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke={C.faint} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+
+            {/* Email */}
+            <button onClick={()=>setEmailMode(true)} className="tap"
+              style={{width:"100%",background:"transparent",border:`1px solid ${C.border}`,borderRadius:12,padding:"15px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:12,cursor:"pointer",color:C.muted,fontSize:14,fontWeight:600}}>
+              <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                <path d="M2 7l10 7 10-7"/>
+              </svg>
+              Continue with Email
             </button>
-            <p style={{color:C.faint,fontSize:11,textAlign:"center",lineHeight:1.7}}>
-              By continuing, you agree to our Terms of Service and Privacy Policy. Your data is yours — always.
+
+            {/* Toggle login/signup */}
+            <p style={{textAlign:"center",color:C.faint,fontSize:12,marginTop:8}}>
+              {isLogin ? "Don't have an account? " : "Already have an account? "}
+              <span onClick={()=>setIsLogin(!isLogin)} style={{color:C.sunrise,cursor:"pointer",fontWeight:600}}>
+                {isLogin ? "Sign up free" : "Log in"}
+              </span>
             </p>
           </div>
-        )}
-
-        {mode === "email" && (
-          <div className="rise">
-            <div style={{display:"flex",gap:10,marginBottom:24}}>
-              {["Sign Up","Log In"].map((l,i)=>(
-                <button key={i} onClick={()=>setIsNew(i===0)} className="tap"
-                  style={{flex:1,padding:"10px",borderRadius:8,background:isNew===(i===0)?`linear-gradient(135deg,${C.sunrise},${C.flame})`:"transparent",border:`1px solid ${isNew===(i===0)?"transparent":C.border}`,color:isNew===(i===0)?"#fff":C.muted,fontSize:13,fontWeight:600,cursor:"pointer"}}>
-                  {l}
-                </button>
-              ))}
-            </div>
-            <div style={{marginBottom:16}}>
-              <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginBottom:8}}>EMAIL ADDRESS</p>
-              <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" type="email"
-                style={{width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.cream,fontSize:14,padding:"13px 16px",outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}
-                onFocus={e=>e.target.style.borderColor=C.sunrise} onBlur={e=>e.target.style.borderColor=C.border}/>
-            </div>
-            <div style={{marginBottom:8}}>
-              <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginBottom:8}}>PASSWORD</p>
-              <input value={password} onChange={e=>setPass(e.target.value)} placeholder="At least 6 characters" type="password"
-                style={{width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.cream,fontSize:14,padding:"13px 16px",outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}
-                onFocus={e=>e.target.style.borderColor=C.sunrise} onBlur={e=>e.target.style.borderColor=C.border}
-                onKeyDown={e=>e.key==="Enter"&&handleEmail()}/>
-            </div>
-            {err && <p style={{color:C.coral,fontSize:12,marginBottom:12}}>{err}</p>}
-            <div style={{height:20}}/>
-            <Btn full onClick={handleEmail} style={{padding:"15px",fontSize:15,marginBottom:14}}>
-              {loading==="email"
-                ? <span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><div style={{width:14,height:14,border:"2px solid #fff",borderTopColor:"transparent",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> {isNew?"Creating account...":"Signing in..."}</span>
-                : isNew ? "Create My Account" : "Sign In"
-              }
+        ) : (
+          /* Email form */
+          <div className="fadein" style={{width:"100%",maxWidth:360,display:"flex",flexDirection:"column",gap:14}}>
+            <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginBottom:2}}>EMAIL</p>
+            <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@email.com" type="email"
+              style={{width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,color:C.cream,fontSize:14,padding:"13px 16px",outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}
+              onFocus={e=>e.target.style.borderColor=C.sunrise} onBlur={e=>e.target.style.borderColor=C.border}/>
+            <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginBottom:2,marginTop:4}}>PASSWORD</p>
+            <input value={password} onChange={e=>setPassword(e.target.value)} placeholder="Create a password" type="password"
+              style={{width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,color:C.cream,fontSize:14,padding:"13px 16px",outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"}}
+              onFocus={e=>e.target.style.borderColor=C.sunrise} onBlur={e=>e.target.style.borderColor=C.border}
+              onKeyDown={e=>e.key==="Enter"&&handleEmail()}/>
+            <Btn full onClick={handleEmail} style={{padding:"15px",marginTop:4}}>
+              {isLogin ? "Log In" : "Create Account"}
             </Btn>
-            <button onClick={()=>{setMode("options");setErr("");}} style={{width:"100%",background:"transparent",border:"none",color:C.muted,fontSize:12,cursor:"pointer",padding:"8px"}}>← Back to options</button>
+            <button onClick={()=>setEmailMode(false)} style={{background:"transparent",border:"none",color:C.faint,fontSize:12,cursor:"pointer",padding:"8px"}}>
+              ← Back to sign in options
+            </button>
           </div>
         )}
       </div>
+
+      {/* Footer */}
+      <p style={{textAlign:"center",color:C.faint,fontSize:10,padding:"0 24px 32px",lineHeight:1.6}}>
+        By continuing you agree to our Terms of Service and Privacy Policy
+      </p>
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════
-   DEMOGRAPHICS SCREEN — optional, skippable
+   DEMOGRAPHICS SCREEN  — optional profile enrichment
 ═══════════════════════════════════════════════════════════ */
 function DemographicsScreen({ authData, onDone }) {
-  const [name,    setName]    = useState(authData?.name || "");
-  const [phone,   setPhone]   = useState("");
-  const [gender,  setGender]  = useState("");
-  const [dob,     setDob]     = useState("");
-  const [country, setCountry] = useState("");
+  const [name, setName]   = useState("");
+  const [role, setRole]   = useState("");
+  const [age,  setAge]    = useState("");
+  const [focus, setFocus] = useState("");
 
-  const COUNTRIES = ["United States","United Kingdom","Canada","Australia","Nigeria","Ghana","Kenya","South Africa","India","Germany","France","Brazil","Jamaica","Trinidad & Tobago","Other"];
-  const GENDERS   = ["Man","Woman","Non-binary","Prefer not to say"];
-
-  const inp = (label, child) => (
-    <div style={{marginBottom:18}}>
-      <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginBottom:8,fontWeight:600}}>{label}</p>
-      {child}
-    </div>
-  );
-  const styl = {width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.cream,fontSize:14,padding:"12px 16px",outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif"};
-
-  const proceed = (skip=false) => {
-    onDone({
-      name:    name.trim() || authData?.name || "",
-      email:   authData?.email || "",
-      phone:   skip ? "" : phone,
-      gender:  skip ? "" : gender,
-      dob:     skip ? "" : dob,
-      country: skip ? "" : country,
-      authMethod: authData?.method || "email",
-    });
-  };
+  const FOCUS_OPTIONS = [
+    "Career Growth",
+    "Health & Fitness",
+    "Entrepreneurship",
+    "Faith & Purpose",
+    "Financial Freedom",
+    "Relationships",
+    "Personal Development",
+  ];
 
   return (
-    <div className="fadein" style={{minHeight:"100vh",background:C.void,display:"flex",flexDirection:"column",padding:"0 0 40px",overflowY:"auto"}}>
-      {/* Header bar */}
-      <div style={{padding:"24px 24px 0",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-        <Logo size={16}/>
-        <button onClick={()=>proceed(true)} style={{background:"transparent",border:"none",color:C.muted,fontSize:12,cursor:"pointer",letterSpacing:.5}}>Skip for now</button>
-      </div>
-      <div style={{margin:"16px 24px 0",height:1,background:`linear-gradient(90deg,${C.gold}55,transparent)`}}/>
+    <div className="fadein" style={{minHeight:"100vh",background:C.void,display:"flex",flexDirection:"column",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:"20%",right:"-5%",width:220,height:220,borderRadius:"50%",background:`radial-gradient(circle,${C.gold}10 0%,transparent 65%)`,pointerEvents:"none"}}/>
 
-      <div style={{flex:1,padding:"32px 24px 0",maxWidth:420,width:"100%",margin:"0 auto"}}>
-        {/* Progress indicator */}
-        <div style={{display:"flex",gap:6,marginBottom:28}}>
-          {[1,2,3].map(i=><div key={i} style={{height:3,flex:1,borderRadius:99,background:i<=2?`linear-gradient(90deg,${C.sunrise},${C.gold})`:C.faint}}/>)}
+      {/* Progress bar — step 2 of 3 */}
+      <div style={{padding:"20px 24px 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <Logo size={16}/>
+        <div style={{display:"flex",gap:6}}>
+          {[0,1,2].map(i=><div key={i} style={{height:3,width:i<=1?28:7,borderRadius:99,background:i<=1?C.sunrise:C.faint,transition:"all .4s"}}/>)}
+        </div>
+      </div>
+      <div style={{margin:"16px 24px 0",height:1,background:`linear-gradient(90deg,${C.sunrise}66,transparent)`}}/>
+
+      <div style={{flex:1,padding:"32px 28px 24px",overflowY:"auto"}}>
+        <Lbl>STEP 2 OF 3</Lbl>
+        <H size={30} style={{marginBottom:8}}>Tell us about<br/><span className="grad-text">yourself</span></H>
+        <p style={{color:C.muted,fontSize:13,lineHeight:1.7,marginBottom:28}}>This helps BestSelf personalize your experience. All fields optional — skip any you prefer.</p>
+
+        {/* Name */}
+        <div style={{marginBottom:20}}>
+          <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginBottom:8}}>YOUR NAME <span style={{color:C.sunrise}}>*</span></p>
+          <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name"
+            style={{width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,color:C.cream,fontSize:16,fontFamily:"'Cormorant Garamond',serif",padding:"13px 16px",outline:"none"}}
+            onFocus={e=>e.target.style.borderColor=C.sunrise} onBlur={e=>e.target.style.borderColor=C.border}/>
         </div>
 
-        <Lbl color={C.gold}>STEP 2 OF 3</Lbl>
-        <H size={28} style={{marginBottom:8,lineHeight:1.15}}>Tell us a little<br/><span className="grad-text">about yourself</span></H>
-        <p style={{color:C.muted,fontSize:13,lineHeight:1.7,marginBottom:28}}>All fields are optional. This helps us personalize your experience.</p>
+        {/* Role */}
+        <div style={{marginBottom:20}}>
+          <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginBottom:8}}>ROLE OR TAGLINE <span style={{color:C.faint,fontSize:9}}>(optional)</span></p>
+          <input value={role} onChange={e=>setRole(e.target.value)} placeholder="e.g. Senior Manager · Entrepreneur"
+            style={{width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,color:C.cream,fontSize:14,fontFamily:"'Plus Jakarta Sans',sans-serif",padding:"13px 16px",outline:"none"}}
+            onFocus={e=>e.target.style.borderColor=C.sunrise} onBlur={e=>e.target.style.borderColor=C.border}/>
+        </div>
 
-        {inp("YOUR NAME *", (
-          <input value={name} onChange={e=>setName(e.target.value)} placeholder="Full name" style={styl}
-            onFocus={e=>e.target.style.borderColor=C.sunrise} onBlur={e=>e.target.style.borderColor=C.border}/>
-        ))}
-        {inp("PHONE NUMBER", (
-          <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+1 (555) 000-0000" type="tel" style={styl}
-            onFocus={e=>e.target.style.borderColor=C.sunrise} onBlur={e=>e.target.style.borderColor=C.border}/>
-        ))}
-        {inp("GENDER", (
+        {/* Age range */}
+        <div style={{marginBottom:20}}>
+          <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginBottom:10}}>AGE RANGE <span style={{color:C.faint,fontSize:9}}>(optional)</span></p>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            {GENDERS.map(g=>(
-              <button key={g} onClick={()=>setGender(gender===g?"":g)} className="tap"
-                style={{padding:"8px 14px",borderRadius:99,background:gender===g?`${C.sunrise}20`:"transparent",border:`1px solid ${gender===g?C.sunrise:C.border}`,color:gender===g?C.sunrise:C.muted,fontSize:12,fontWeight:500,cursor:"pointer",transition:"all .2s"}}>
-                {g}
+            {["18–24","25–34","35–44","45–54","55+"].map(a=>(
+              <button key={a} onClick={()=>setAge(age===a?"":a)} className="tap"
+                style={{padding:"8px 16px",borderRadius:99,border:`1px solid ${age===a?C.sunrise:C.border}`,background:age===a?`${C.sunrise}18`:"transparent",color:age===a?C.sunrise:C.muted,fontSize:12,fontWeight:600,cursor:"pointer",transition:"all .2s"}}>
+                {a}
               </button>
             ))}
           </div>
-        ))}
-        {inp("DATE OF BIRTH", (
-          <input value={dob} onChange={e=>setDob(e.target.value)} type="date" style={{...styl,colorScheme:"dark"}}/>
-        ))}
-        {inp("COUNTRY", (
-          <select value={country} onChange={e=>setCountry(e.target.value)}
-            style={{...styl,appearance:"none",backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A8099' strokeWidth='1.5' fill='none' strokeLinecap='round'/%3E%3C/svg%3E")`,backgroundRepeat:"no-repeat",backgroundPosition:"right 14px center"}}>
-            <option value="">Select your country</option>
-            {COUNTRIES.map(c=><option key={c} value={c}>{c}</option>)}
-          </select>
-        ))}
-
-        <div style={{marginTop:8}}>
-          <Btn full onClick={()=>proceed(false)} style={{padding:"15px",fontSize:15,marginBottom:12}}>
-            Continue
-          </Btn>
-          <button onClick={()=>proceed(true)} style={{width:"100%",background:"transparent",border:"none",color:C.faint,fontSize:12,cursor:"pointer",padding:"8px"}}>
-            Skip — I'll fill this in later
-          </button>
         </div>
+
+        {/* Primary focus */}
+        <div style={{marginBottom:32}}>
+          <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginBottom:10}}>PRIMARY FOCUS <span style={{color:C.faint,fontSize:9}}>(optional)</span></p>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {FOCUS_OPTIONS.map(f=>(
+              <button key={f} onClick={()=>setFocus(focus===f?"":f)} className="tap"
+                style={{padding:"8px 14px",borderRadius:99,border:`1px solid ${focus===f?C.gold:C.border}`,background:focus===f?`${C.gold}18`:"transparent",color:focus===f?C.gold:C.muted,fontSize:11,fontWeight:600,cursor:"pointer",transition:"all .2s"}}>
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Trial notice */}
+        <div style={{background:C.card,border:`1px solid ${C.gold}33`,borderRadius:10,padding:"14px 16px",marginBottom:24}}>
+          <p style={{color:C.gold,fontSize:12,fontWeight:600,marginBottom:4}}>Free {TRIAL_DAYS}-Day Trial</p>
+          <p style={{color:C.muted,fontSize:12,lineHeight:1.6}}>Full access for {TRIAL_DAYS} days. Then just {PLAN_PRICE}. No credit card required to start.</p>
+        </div>
+
+        <Btn full onClick={()=>{ if(name.trim()) onDone(name.trim(), role.trim(), age, focus); }}
+          style={{padding:"16px",fontSize:15}}>
+          Continue →
+        </Btn>
+        <button onClick={()=>{ if(name.trim()) onDone(name.trim(), role.trim(), age, focus); else onDone("Champion","","",""); }}
+          style={{width:"100%",background:"transparent",border:"none",color:C.faint,fontSize:12,padding:"12px",cursor:"pointer",marginTop:4}}>
+          Skip for now
+        </button>
       </div>
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════
-   ONBOARDING  — slides + role step (step 3 of 3)
+   ONBOARDING SLIDES
 ═══════════════════════════════════════════════════════════ */
-function Onboarding({ onDone, prefillName="" }) {
-  const [step, setStep]     = useState(0);
-  const [form, setForm]     = useState(false);
-  const [name, setName]     = useState(prefillName);
-  const [role, setRole]     = useState("");
+function Onboarding({ onDone }) {
+  const [authStage, setAuthStage]   = useState("auth");   // "auth" | "demo" | "slides"
+  const [authData,  setAuthData]    = useState(null);
+  const [demoData,  setDemoData]    = useState(null);
+  const [step,      setStep]        = useState(0);
 
-  const s = ONBOARD_SLIDES[step];
-  const last = step === ONBOARD_SLIDES.length-1;
+  const s    = ONBOARD_SLIDES[step];
+  const last = step === ONBOARD_SLIDES.length - 1;
 
-  if (form) return (
-    <div className="fadein" style={{minHeight:"100vh",background:C.void,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 24px",position:"relative",overflow:"hidden"}}>
-      <div style={{position:"absolute",top:"15%",left:"50%",transform:"translateX(-50%)",width:300,height:300,borderRadius:"50%",background:`radial-gradient(circle,${C.sunrise}14 0%,transparent 65%)`,pointerEvents:"none"}}/>
-      <div style={{width:"100%",maxWidth:380,position:"relative"}}>
-        <Logo size={20}/>
-        <div style={{height:20}}/>
-        {/* Step indicator */}
-        <div style={{display:"flex",gap:6,marginBottom:24}}>
-          {[1,2,3].map(i=><div key={i} style={{height:3,flex:1,borderRadius:99,background:i<=3?`linear-gradient(90deg,${C.sunrise},${C.gold})`:C.faint}}/>)}
-        </div>
-        <Lbl>STEP 3 OF 3</Lbl>
-        <H size={30} style={{marginBottom:8}}>How should we<br/><span className="grad-text">know you?</span></H>
-        <p style={{color:C.muted,fontSize:14,lineHeight:1.7,marginBottom:28}}>Your 90-day transformation starts the moment you commit.</p>
-        <div style={{marginBottom:18}}>
-          <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginBottom:8}}>YOUR NAME</p>
-          <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name"
-            style={{width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.cream,fontSize:17,fontFamily:"'Cormorant Garamond',serif",padding:"13px 16px",outline:"none"}}
-            onFocus={e=>e.target.style.borderColor=C.sunrise} onBlur={e=>e.target.style.borderColor=C.border}/>
-        </div>
-        <div style={{marginBottom:32}}>
-          <p style={{color:C.muted,fontSize:10,letterSpacing:2,marginBottom:8}}>ROLE OR TAGLINE</p>
-          <input value={role} onChange={e=>setRole(e.target.value)} placeholder="e.g. Marketing Leader · Entrepreneur"
-            style={{width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.cream,fontSize:14,fontFamily:"'Plus Jakarta Sans',sans-serif",padding:"13px 16px",outline:"none"}}
-            onFocus={e=>e.target.style.borderColor=C.sunrise} onBlur={e=>e.target.style.borderColor=C.border}/>
-        </div>
-        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"14px 16px",marginBottom:24}}>
-          <p style={{color:C.gold,fontSize:12,fontWeight:600,marginBottom:4}}>Free {TRIAL_DAYS}-Day Trial</p>
-          <p style={{color:C.muted,fontSize:12,lineHeight:1.6}}>Full access for {TRIAL_DAYS} days. Then just {PLAN_PRICE}. No credit card required to start.</p>
-        </div>
-        <Btn full onClick={()=>{if(name.trim()) onDone(name.trim(), role.trim());}} style={{padding:"16px",fontSize:15}}>
-          Start My Free Trial
-        </Btn>
-      </div>
-    </div>
+  if (authStage === "auth") return (
+    <AuthScreen onNext={(ad) => { setAuthData(ad); setAuthStage("demo"); }}/>
   );
 
+  if (authStage === "demo") return (
+    <DemographicsScreen authData={authData} onDone={(name, role, age, focus) => {
+      setDemoData({ name, role, age, focus });
+      setAuthStage("slides");
+    }}/>
+  );
+
+  // Onboarding slides (step 3 of 3)
   return (
     <div key={step} style={{minHeight:"100vh",background:C.deep,display:"flex",flexDirection:"column",position:"relative",overflow:"hidden"}}>
       <div className="float" style={{position:"absolute",top:"8%",right:"-8%",width:260,height:260,borderRadius:"50%",background:`radial-gradient(circle,${s.accent}16 0%,transparent 65%)`,pointerEvents:"none"}}/>
@@ -1249,14 +1062,13 @@ function Onboarding({ onDone, prefillName="" }) {
       <div style={{padding:"24px 24px 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <Logo size={16}/>
         <div style={{display:"flex",gap:6}}>
-          {ONBOARD_SLIDES.map((_,i)=><div key={i} style={{height:3,width:i===step?28:7,borderRadius:99,background:i<=step?s.accent:C.faint,transition:"all .4s"}}/>)}
+          {[0,1,2].map(i=><div key={i} style={{height:3,width:i<=2?28:7,borderRadius:99,background:i<=step?s.accent:C.faint,transition:"all .4s"}}/>)}
         </div>
       </div>
-
-      {/* Decorative accent line */}
       <div style={{margin:"20px 24px 0",height:1,background:`linear-gradient(90deg,${s.accent}66,transparent)`}}/>
 
       <div className="rise" style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",padding:"40px 28px 24px"}}>
+        <Lbl style={{marginBottom:12}}>STEP 3 OF 3</Lbl>
         <H size={40} style={{marginBottom:20,whiteSpace:"pre-line",lineHeight:1.1}}>
           {s.title.split("\n").map((line,i)=>
             i===1 ? <span key={i} style={{color:s.accent}}>{line}<br/></span>
@@ -1267,7 +1079,7 @@ function Onboarding({ onDone, prefillName="" }) {
       </div>
 
       <div style={{padding:"0 28px 52px"}}>
-        <Btn full onClick={()=>{ if(last) setForm(true); else setStep(s=>s+1); }} style={{padding:"17px",fontSize:15}}>{s.cta}</Btn>
+        <Btn full onClick={()=>{ if(last) onDone(demoData.name, demoData.role); else setStep(s=>s+1); }} style={{padding:"17px",fontSize:15}}>{s.cta}</Btn>
         {step>0 && <button onClick={()=>setStep(s=>s-1)} style={{width:"100%",background:"transparent",border:"none",color:C.muted,padding:"12px",fontSize:13,cursor:"pointer",marginTop:4}}>Back</button>}
       </div>
     </div>
@@ -1298,7 +1110,7 @@ function useRotatingQuote(data, setData) {
 /* ═══════════════════════════════════════════════════════════
    DASHBOARD
 ═══════════════════════════════════════════════════════════ */
-function Dashboard({ data, setData, showMilestone, onShareStreak }) {
+function Dashboard({ data, setData, showMilestone }) {
   const quote = useRotatingQuote(data, setData);
   const days  = Math.min(90, Math.max(0, Math.floor((Date.now()-new Date(data.user.trialStart||data.user.joinDate))/86400000)));
   const pct90 = Math.round((days/90)*100);
@@ -1366,22 +1178,16 @@ function Dashboard({ data, setData, showMilestone, onShareStreak }) {
       {/* Stats */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:18}}>
         {[
-          {label:"Week Streak",   value:streak,  color:C.gold,   sub: milestone?.label || null, share: streak>0},
-          {label:"Weeks Logged",  value:data.weeks.length,                                   color:C.mint},
-          {label:"90-Day Goals",  value:totalGoals,                                          color:"#60A5FA"},
-          {label:"Completed",     value:data.weeks.filter(w=>w.done).length,                 color:C.sunrise},
+          {label:"Week Streak",   value:streak,                                              color:C.gold,   sub: milestone?.label || null},
+          {label:"Blueprints",     value:data.weeks.length,                                   color:C.mint},
+          {label:"90-Day Goals",   value:totalGoals,                                          color:"#60A5FA"},
+          {label:"Audited",        value:data.weeks.filter(w=>w.done).length,                 color:C.sunrise},
         ].map((s,i)=>(
           <div key={i} className="lift" style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 14px",position:"relative",overflow:"hidden"}}>
             <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${s.color},transparent)`}}/>
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:30,color:C.cream,fontWeight:700,lineHeight:1,marginBottom:4}}>{s.value}</div>
             <div style={{color:C.muted,fontSize:10,letterSpacing:1,fontWeight:600}}>{s.label.toUpperCase()}</div>
             {s.sub && <div style={{marginTop:6}}><Pill color={C.gold}>{s.sub}</Pill></div>}
-            {s.share && onShareStreak && (
-              <button onClick={onShareStreak} className="tap"
-                style={{marginTop:8,background:`${C.gold}14`,border:`1px solid ${C.gold}33`,color:C.gold,padding:"4px 10px",borderRadius:99,fontSize:9,fontWeight:700,letterSpacing:.5,cursor:"pointer"}}>
-                Share
-              </button>
-            )}
           </div>
         ))}
       </div>
@@ -1735,41 +1541,42 @@ function Weekly({ data, setData }) {
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:22}}>
         <div>
           <Pill>Week {idx+1}</Pill>
-          <H size={24} style={{marginTop:8}}>My Best Week Yet</H>
+          <H size={24} style={{marginTop:8}}>Weekly Blueprint</H>
           <p style={{color:C.muted,fontSize:12,marginTop:4}}>{new Date(w.date).toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</p>
         </div>
-        <Btn ghost small onClick={()=>setView("reflect")}>Reflect</Btn>
+        <Btn ghost small onClick={()=>setView("reflect")}>Audit</Btn>
       </div>
 
       <div style={{display:"flex",flexDirection:"column",gap:14}}>
-        <Card glow={C.gold}><Lbl color={C.gold}>Top 3 Wins From Last Week</Lbl><NumList items={w.wins} onChange={v=>upd(wk=>({...wk,wins:v}))} placeholder="A win worth celebrating..."/></Card>
-        <Card><Lbl color={C.sunrise}>Top 3 Goals This Week</Lbl><NumList items={w.goals} onChange={v=>upd(wk=>({...wk,goals:v}))} placeholder="This week I will..."/></Card>
+        <Card glow={C.gold}><Lbl color={C.gold}>Last Week's Wins</Lbl><NumList items={w.wins} onChange={v=>upd(wk=>({...wk,wins:v}))} placeholder="A result worth noting..."/></Card>
+        <Card><Lbl color={C.sunrise}>This Week's Priorities</Lbl><NumList items={w.goals} onChange={v=>upd(wk=>({...wk,goals:v}))} placeholder="This week I will deliver..."/></Card>
         {[0,1,2].map(gi=>(
           <Card key={gi} style={{borderLeft:`2px solid #60A5FA`}}>
-            <Lbl color="#60A5FA">Actions — Goal {gi+1}{w.goals[gi]?`: ${w.goals[gi].slice(0,26)}${w.goals[gi].length>26?"…":""}`:""}</Lbl>
-            <NumList items={w.actions[gi]} onChange={v=>upd(wk=>{const a=[...wk.actions];a[gi]=v;return{...wk,actions:a};})} placeholder="Specific action..."/>
+            <Lbl color="#60A5FA">Blueprint Block — Priority {gi+1}{w.goals[gi]?`: ${w.goals[gi].slice(0,26)}${w.goals[gi].length>26?"…":""}`:""}</Lbl>
+            <p style={{color:C.faint,fontSize:10,fontStyle:"italic",marginBottom:8}}>Define your success metric + key moves</p>
+            <NumList items={w.actions[gi]} onChange={v=>upd(wk=>{const a=[...wk.actions];a[gi]=v;return{...wk,actions:a};})} placeholder="Specific move to execute..."/>
           </Card>
         ))}
-        <Card style={{borderLeft:`2px solid ${C.mint}`}}><Lbl color={C.mint}>How I Will Show Up</Lbl><NumList items={w.showUp} onChange={v=>upd(wk=>({...wk,showUp:v}))} placeholder="I will show up as..."/></Card>
-        <Card style={{borderLeft:`2px solid ${C.coral}`}}><Lbl color={C.coral}>Limiting Beliefs to Release</Lbl><NumList items={w.limiting} onChange={v=>upd(wk=>({...wk,limiting:v}))} placeholder="I will stop believing..."/></Card>
-        <Card style={{borderLeft:`2px solid ${C.lavender}`}}><Lbl color={C.lavender}>Empowering Beliefs Instead</Lbl><NumList items={w.empowering} onChange={v=>upd(wk=>({...wk,empowering:v}))} placeholder="I now choose to believe..."/></Card>
-        <Btn full onClick={()=>setView("reflect")} style={{padding:"15px",fontSize:14}}>End of Week — Reflect</Btn>
+        <Card style={{borderLeft:`2px solid ${C.mint}`}}><Lbl color={C.mint}>My Operating Mode This Week</Lbl><NumList items={w.showUp} onChange={v=>upd(wk=>({...wk,showUp:v}))} placeholder="I will operate as..."/></Card>
+        <Card style={{borderLeft:`2px solid ${C.coral}`}}><Lbl color={C.coral}>Blockers to Eliminate</Lbl><NumList items={w.limiting} onChange={v=>upd(wk=>({...wk,limiting:v}))} placeholder="I'm removing this from my thinking..."/></Card>
+        <Card style={{borderLeft:`2px solid ${C.lavender}`}}><Lbl color={C.lavender}>Reframes That Drive Me</Lbl><NumList items={w.empowering} onChange={v=>upd(wk=>({...wk,empowering:v}))} placeholder="The belief I'm activating instead..."/></Card>
+        <Btn full onClick={()=>setView("reflect")} style={{padding:"15px",fontSize:14}}>End of Week — Run the Audit</Btn>
       </div>
     </div>
   );
 
   if (view==="reflect" && w) return (
     <div className="fadein">
-      <button onClick={()=>setView("plan")} style={{background:"transparent",border:"none",color:C.muted,fontSize:13,cursor:"pointer",marginBottom:20}}>← Back to Plan</button>
-      <H size={24} style={{marginBottom:6}}>My Ahas This Week</H>
-      <p style={{color:C.muted,fontSize:13,marginBottom:22}}>End-of-week reflection</p>
+      <button onClick={()=>setView("plan")} style={{background:"transparent",border:"none",color:C.muted,fontSize:13,cursor:"pointer",marginBottom:20}}>← Back to Blueprint</button>
+      <H size={24} style={{marginBottom:6}}>Weekly Audit</H>
+      <p style={{color:C.muted,fontSize:13,marginBottom:22}}>Accountability debrief — be honest, be precise</p>
       <div style={{display:"flex",flexDirection:"column",gap:14}}>
-        <Card><Lbl>What Did I Learn About Myself?</Lbl><NumList items={w.learned} onChange={v=>upd(wk=>({...wk,learned:v}))} placeholder="I discovered..."/></Card>
-        <Card style={{borderLeft:`2px solid ${C.mint}`}}><Lbl color={C.mint}>What Worked This Week?</Lbl><NumList items={w.worked} onChange={v=>upd(wk=>({...wk,worked:v}))} placeholder="This helped me succeed..."/></Card>
-        <Card style={{borderLeft:`2px solid ${C.coral}`}}><Lbl color={C.coral}>What Did I Procrastinate?</Lbl><NumList items={w.avoided} onChange={v=>upd(wk=>({...wk,avoided:v}))} placeholder="I kept putting off..."/></Card>
-        <Card><Lbl>If I Started This Week Over...</Lbl><NumList items={w.doOver} onChange={v=>upd(wk=>({...wk,doOver:v}))} placeholder="I would have..."/></Card>
+        <Card><Lbl>What Did This Week Reveal?</Lbl><NumList items={w.learned} onChange={v=>upd(wk=>({...wk,learned:v}))} placeholder="This week exposed..."/></Card>
+        <Card style={{borderLeft:`2px solid ${C.mint}`}}><Lbl color={C.mint}>What Drove Results?</Lbl><NumList items={w.worked} onChange={v=>upd(wk=>({...wk,worked:v}))} placeholder="This moved the needle because..."/></Card>
+        <Card style={{borderLeft:`2px solid ${C.coral}`}}><Lbl color={C.coral}>Where Did I Lose Momentum?</Lbl><NumList items={w.avoided} onChange={v=>upd(wk=>({...wk,avoided:v}))} placeholder="I stalled on..."/></Card>
+        <Card><Lbl>If I Ran This Play Again...</Lbl><NumList items={w.doOver} onChange={v=>upd(wk=>({...wk,doOver:v}))} placeholder="I would have executed differently by..."/></Card>
         <div style={{background:`linear-gradient(135deg,${C.card},#12111A)`,border:`1px solid ${C.lavender}28`,borderRadius:12,padding:"20px 16px"}}>
-          <Lbl color={C.lavender}>I Am Statements This Week</Lbl>
+          <Lbl color={C.lavender}>Identity Anchors</Lbl>
           {w.iAm.map((s,i)=>(
             <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
               <span style={{color:C.lavender,fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontStyle:"italic",minWidth:30,flexShrink:0}}>I am</span>
@@ -1779,7 +1586,7 @@ function Weekly({ data, setData }) {
             </div>
           ))}
         </div>
-        <Btn full onClick={()=>{upd(wk=>({...wk,done:true}));setView("list");setIdx(null);}} style={{padding:"15px"}}>Mark Week Complete</Btn>
+        <Btn full onClick={()=>{upd(wk=>({...wk,done:true}));setView("list");setIdx(null);}} style={{padding:"15px"}}>Lock In Audit — Week Complete</Btn>
       </div>
     </div>
   );
@@ -1796,10 +1603,10 @@ function Weekly({ data, setData }) {
       )}
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:24}}>
         <div>
-          <H size={26}>Weekly Planner</H>
-          <p style={{color:C.muted,fontSize:13,marginTop:4}}>{data.weeks.length} weeks · {data.weeks.filter(w=>w.done).length} completed</p>
+          <H size={26}>Weekly Blueprint</H>
+          <p style={{color:C.muted,fontSize:13,marginTop:4}}>{data.weeks.length} blueprints · {data.weeks.filter(w=>w.done).length} audited</p>
         </div>
-        <Btn onClick={add}>+ New Week</Btn>
+        <Btn onClick={add}>+ New Blueprint</Btn>
       </div>
 
       {data.weeks.length===0 && (
@@ -1807,9 +1614,9 @@ function Weekly({ data, setData }) {
           <div className="float" style={{width:64,height:64,borderRadius:16,background:`${C.sunrise}18`,border:`1px solid ${C.sunrise}30`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px"}}>
             <div style={{width:28,height:28,borderRadius:"50%",border:`2px solid ${C.sunrise}`}}/>
           </div>
-          <H size={22} style={{marginBottom:10}}>Start Your Best Week Yet</H>
-          <p style={{color:C.muted,fontSize:14,lineHeight:1.7,marginBottom:28}}>30 minutes of intentional planning changes everything. Build your week now.</p>
-          <Btn onClick={add}>Begin Week 1</Btn>
+          <H size={22} style={{marginBottom:10}}>Build Your First Weekly Blueprint</H>
+          <p style={{color:C.muted,fontSize:14,lineHeight:1.7,marginBottom:28}}>30 minutes of strategic planning sets the trajectory for your entire week.</p>
+          <Btn onClick={add}>Begin Blueprint 1</Btn>
         </div>
       )}
 
@@ -1824,12 +1631,12 @@ function Weekly({ data, setData }) {
               </div>
               <div style={{flex:1}}>
                 <p style={{color:C.cream,fontFamily:"'Cormorant Garamond',serif",fontSize:15,marginBottom:5}}>
-                  Week {i+1} · {new Date(wk.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}
+                  Blueprint {i+1} · {new Date(wk.date).toLocaleDateString("en-US",{month:"short",day:"numeric"})}
                 </p>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                  <Pill color={C.sunrise}>{wk.goals.filter(Boolean).length} goals</Pill>
+                  <Pill color={C.sunrise}>{wk.goals.filter(Boolean).length} priorities</Pill>
                   <Pill color={C.gold}>{wk.wins.filter(Boolean).length} wins</Pill>
-                  {wk.done && <Pill color={C.mint}>Complete</Pill>}
+                  {wk.done && <Pill color={C.mint}>Audited</Pill>}
                 </div>
               </div>
               <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
@@ -2005,14 +1812,14 @@ const TABS = [
   { id:"home",      label:"Home",     Icon: Icons.Home      },
   { id:"annual",    label:"Annual",   Icon: Icons.Annual    },
   { id:"90day",     label:"90-Day",   Icon: Icons.Sprint    },
-  { id:"weekly",    label:"Weekly",   Icon: Icons.Weekly    },
+  { id:"weekly",    label:"Blueprint", Icon: Icons.Weekly    },
   { id:"analytics", label:"Stats",    Icon: Icons.Analytics },
 ];
 const ALL_PAGES = [
   { id:"home",      label:"Dashboard",       Icon: Icons.Home      },
   { id:"annual",    label:"Annual Goals",    Icon: Icons.Annual    },
   { id:"90day",     label:"90-Day Goals",    Icon: Icons.Sprint    },
-  { id:"weekly",    label:"Weekly Planner",  Icon: Icons.Weekly    },
+  { id:"weekly",    label:"Weekly Blueprint",  Icon: Icons.Weekly    },
   { id:"identity",  label:"I Am Statements", Icon: Icons.Identity  },
   { id:"reading",   label:"Reading Plan",    Icon: Icons.Reading   },
   { id:"analytics", label:"Analytics",       Icon: Icons.Analytics },
@@ -2020,24 +1827,21 @@ const ALL_PAGES = [
 
 export default function App() {
   const [data, setRaw]          = useState(loadData);
-  const [authStep, setAuthStep] = useState("auth"); // "auth"|"demo"|"onboard"|"done"
-  const [authData, setAuthData] = useState(null);
+  const [onboarded, setOnboarded] = useState(false);
   const [tab, setTab]           = useState("home");
   const [drawer, setDrawer]     = useState(false);
-  const [paywallOpen, setPaywallOpen]   = useState(false);
-  const [milestone, setMilestone]       = useState(null);
-  const [streakShare, setStreakShare]   = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const [milestone, setMilestone]     = useState(null);
   const prevStreakRef = useRef(null);
 
-  // Check if already onboarded
-  useEffect(()=>{
-    if (data.user.name) setAuthStep("done");
-  },[]);
+  useEffect(()=>{ if(data.user.name) setOnboarded(true); },[]);
 
+  // Show paywall when trial expires
   useEffect(()=>{
-    if (authStep==="done" && isLocked(data.user)) setPaywallOpen(true);
-  },[authStep]);
+    if (onboarded && isLocked(data.user)) setPaywallOpen(true);
+  },[onboarded]);
 
+  // Detect milestone achievements
   useEffect(()=>{
     const streak = computeStreak(data.weeks);
     const prev   = prevStreakRef.current;
@@ -2046,62 +1850,27 @@ export default function App() {
       if (hit) setMilestone(hit);
     }
     prevStreakRef.current = streak;
-  },[data.weeks]);
+  }, [data.weeks]);
 
   const setData = fn => setRaw(prev=>{ const next=typeof fn==="function"?fn(prev):fn; persist(next); return next; });
 
-  // Step 1: Auth complete
-  const handleAuth = (authInfo) => {
-    setAuthData(authInfo);
-    setAuthStep("demo");
-  };
-
-  // Step 2: Demographics complete (or skipped)
-  const handleDemo = (demoInfo) => {
-    setData(d=>({...d, user:{...d.user,
-      email:      demoInfo.email || "",
-      phone:      demoInfo.phone || "",
-      gender:     demoInfo.gender || "",
-      dob:        demoInfo.dob || "",
-      country:    demoInfo.country || "",
-      authMethod: demoInfo.authMethod || "",
-    }}));
-    setAuthStep("onboard");
-  };
-
-  // Step 3: Onboarding (role + name) complete
-  const handleOnboard = (name, role) => {
-    setData(d=>({...d,user:{...d.user,
-      name, role,
-      joinDate:   new Date().toISOString().slice(0,10),
-      trialStart: new Date().toISOString().slice(0,10),
-    }}));
-    setAuthStep("done");
+  const finish = (name, role, age="", focus="") => {
+    setData(d=>({...d,user:{...d.user,name,role,age,focus,joinDate:new Date().toISOString().slice(0,10),trialStart:new Date().toISOString().slice(0,10)}}));
+    setOnboarded(true);
   };
 
   const showPaywall = () => setPaywallOpen(true);
 
-  // ── Render auth flow steps ──
-  if (authStep==="auth") return (
-    <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",maxWidth:480,margin:"0 auto"}}><Styles/><AuthScreen onAuth={handleAuth}/></div>
-  );
-  if (authStep==="demo") return (
-    <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",maxWidth:480,margin:"0 auto"}}><Styles/><DemographicsScreen authData={authData} onDone={handleDemo}/></div>
-  );
-  if (authStep==="onboard") return (
-    <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",maxWidth:480,margin:"0 auto"}}><Styles/><Onboarding onDone={handleOnboard} prefillName={authData?.name||""}/></div>
-  );
-
-  const streak = computeStreak(data.weeks);
+  if (!onboarded) return <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",maxWidth:480,margin:"0 auto"}}><Styles/><Onboarding onDone={finish}/></div>;
 
   const pages = {
-    home:      <Dashboard data={data} setData={setData} showMilestone={()=>setMilestone(getMilestone(streak))} onShareStreak={()=>setStreakShare(true)}/>,
+    home:      <Dashboard data={data} setData={setData} showMilestone={()=>setMilestone(getMilestone(computeStreak(data.weeks)))}/>,
     annual:    <AnnualGoals data={data} setData={setData} showPaywall={showPaywall}/>,
     "90day":   <Goals90 data={data} setData={setData} showPaywall={showPaywall}/>,
     weekly:    <Weekly data={data} setData={setData}/>,
     identity:  <Identity data={data} setData={setData}/>,
     reading:   <Reading data={data} setData={setData}/>,
-    analytics: <Analytics data={data} onShareStreak={()=>setStreakShare(true)}/>,
+    analytics: <Analytics data={data}/>,
   };
 
   return (
@@ -2113,9 +1882,6 @@ export default function App() {
 
       {/* Milestone celebration */}
       {milestone && <MilestoneCelebration milestone={milestone} onClose={()=>setMilestone(null)}/>}
-
-      {/* Streak share modal */}
-      {streakShare && <StreakShareModal streak={streak} userName={data.user.name} milestone={getMilestone(streak)} onClose={()=>setStreakShare(false)}/>}
 
       {/* Header */}
       <div style={{position:"sticky",top:0,zIndex:50,background:`${C.void}EE`,backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",borderBottom:`1px solid ${C.border}`,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
